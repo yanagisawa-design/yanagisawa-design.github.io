@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ウクレレコード確認デモ</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        table { margin: 20px auto; border-collapse: collapse; }
+        td { width: 50px; height: 50px; border: 1px solid #333; text-align: center; cursor: pointer; position: relative; }
+        .active { background-color: #ffcc00; }
+        .fret-label { position: absolute; top: 5px; left: 5px; font-size: 12px; color: #333; }
+        .fret-Interval { position: absolute; bottom: 5px; right: 5px; font-size: 10px; color: #555; }
+
+/* 音を鳴らしたときに一時的にハイライト */
+.playing {
+    background: radial-gradient(circle, rgba(255, 204, 0, 0.8) 0%, rgba(255, 255, 255, 0) 100%);
+    transition: background 0.5s ease-out;
+}
+
+    </style>
+</head>
+<body>
+    <h1>ウクレレコード確認デモ</h1>
+    <p>クリックしてフレットを押さえ、"コードを鳴らす"ボタンを押してください</p>
+    
+    <button onclick="setChord('C')">C</button>
+    <button onclick="setChord('C#')">C#</button>
+    <button onclick="setChord('D')">D</button>
+    <button onclick="setChord('D#')">D#</button>
+    <button onclick="setChord('E')">E</button>
+    <button onclick="setChord('F')">F</button>
+    <button onclick="setChord('F#')">F#</button>
+    <button onclick="setChord('G')">G</button>
+    <button onclick="setChord('G#')">G#</button>
+    <button onclick="setChord('A')">A</button>
+    <button onclick="setChord('A#')">A#</button>
+    <button onclick="setChord('B')">B</button>
+
+    <button onclick="playChord()">コードを鳴らす</button>
+    <button onclick="resetFrets()">リセット</button>
+
+    <table>
+        <tbody>
+            <tr>
+                <th>1弦 (A)</th>
+                <td onclick="toggleFret(0, 0)" class="fret"><span class="fret-label">A</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(0, 1)" class="fret"><span class="fret-label">A#</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(0, 2)" class="fret"><span class="fret-label">B</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(0, 3)" class="fret"><span class="fret-label">C</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(0, 4)" class="fret"><span class="fret-label">C#</span><span class="fret-Interval"></span></td>
+            </tr>
+            <tr>
+                <th>2弦 (E)</th>
+                <td onclick="toggleFret(1, 0)" class="fret"><span class="fret-label">E</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(1, 1)" class="fret"><span class="fret-label">F</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(1, 2)" class="fret"><span class="fret-label">F#</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(1, 3)" class="fret"><span class="fret-label">G</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(1, 4)" class="fret"><span class="fret-label">G#</span><span class="fret-Interval"></span></td>
+            </tr>
+            <tr>
+                <th>3弦 (C)</th>
+                <td onclick="toggleFret(2, 0)" class="fret"><span class="fret-label">C</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(2, 1)" class="fret"><span class="fret-label">C#</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(2, 2)" class="fret"><span class="fret-label">D</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(2, 3)" class="fret"><span class="fret-label">D#</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(2, 4)" class="fret"><span class="fret-label">E</span><span class="fret-Interval"></span></td>
+            </tr>
+            <tr>
+                <th>4弦 (G)</th>
+                <td onclick="toggleFret(3, 0)" class="fret"><span class="fret-label">G</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(3, 1)" class="fret"><span class="fret-label">G#</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(3, 2)" class="fret"><span class="fret-label">A</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(3, 3)" class="fret"><span class="fret-label">A#</span><span class="fret-Interval"></span></td>
+                <td onclick="toggleFret(3, 4)" class="fret"><span class="fret-label">B</span><span class="fret-Interval"></span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+const baseNotes = ['A', 'E', 'C', 'G']; // 各弦の基準音
+
+function getFretNotes(baseNotes) {
+    const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    return baseNotes.map(baseNote => {
+        const startIndex = chromaticScale.indexOf(baseNote);
+        return Array.from({ length: 12 }, (_, i) => chromaticScale[(startIndex + i) % 12]);
+    });
+}
+
+const fretNotes = getFretNotes(baseNotes);
+console.log(fretNotes);
+
+const baseFrequencies = [440.00, 329.63, 261.63, 392.00];
+const semitoneRatio = Math.pow(2, 1/12);
+let activeFrets = [null, null, null, null];
+
+const chords = {
+    'C': { name: 'C', frets: [3, 0, 0, 0] },
+    'C#': { name: 'C#', frets: [4, 1, 1, 1] },
+    'D': { name: 'D', frets: [0, 2, 2, 2] },
+    'D#': { name: 'D#', frets: [1, 3, 3, 0] },
+    'E': { name: 'E', frets: [2, 4, 4, 4] },
+    'F': { name: 'F', frets: [0, 1, 0, 2] },
+    'F#': { name: 'F#', frets: [1, 2, 1, 3] },
+    'G': { name: 'G', frets: [2, 3, 2, 0] },
+    'G#': { name: 'G#', frets: [3, 4, 3, 1] },
+    'A': { name: 'A', frets: [0, 0, 1, 2] },
+    'A#': { name: 'A#', frets: [1, 1, 2, 3] },
+    'B': { name: 'B', frets: [2, 2, 3, 4] },
+};
+
+function initializeIntervals(baseNote = 'C') {
+    const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const intervalMapping = {
+        0: 'R', 2: '2', 4: '3', 5: '4', 7: '5', 9: '6' // 度数マッピング
+    };
+
+    return fretNotes.map(notes =>
+        notes.map(note => {
+            const baseIndex = chromaticScale.indexOf(baseNote); // 選択されたコードの基準音
+            const noteIndex = chromaticScale.indexOf(note);
+            const intervalIndex = (noteIndex - baseIndex + 12) % 12;
+            return intervalMapping[intervalIndex] || ''; // 該当する度数を返す
+        })
+    );
+}
+
+
+
+let intervals = initializeIntervals();
+
+function setChord(chordName) {
+    console.log(`setChord called: chord=${chordName}`);
+    const chord = chords[chordName];
+    if (chord) {
+        activeFrets = [...chord.frets]; // フレットを適用
+
+        // ★ 度数のリセット
+        document.querySelectorAll('.fret-Interval').forEach(span => {
+            span.textContent = ''; // ★全フレットの度数をクリア
+        });
+
+        intervals = initializeIntervals(chordName); // ★選択したコードに基づいて度数を更新
+
+        updateFretDisplay(chordName); // 指板全体を更新
+
+        // ★ 追加: コードを選択したら自動で鳴らす
+        playChord();
+    }
+}
+
+
+
+function toggleFret(string, fret) {
+    const rows = document.querySelectorAll('tbody tr');
+    const row = rows[string];
+
+    if (row) {
+        const cells = row.querySelectorAll('td');
+        if (activeFrets[string] === fret) {
+            activeFrets[string] = null;
+            cells[fret].classList.remove('active');
+        } else {
+            activeFrets[string] = fret;
+            cells.forEach(cell => cell.classList.remove('active'));
+            cells[fret].classList.add('active');
+            playNote(string, fret);
+        }
+    }
+}
+
+function updateFretDisplay(chordName) {
+    const rows = document.querySelectorAll('tbody tr');
+    document.querySelectorAll('td.fret').forEach((cell, index) => {
+        cell.classList.remove('active');
+
+        const intervalSpan = cell.querySelector('.fret-Interval');
+        const labelSpan = cell.querySelector('.fret-label');
+
+        const string = Math.floor(index / 5); // 弦番号を取得
+        const fret = index % 5; // フレット番号を取得
+
+        if (chordName === null) {
+            if (intervalSpan) intervalSpan.textContent = ''; // ★リセット時に全削除
+        } else if (intervals[string] && intervals[string][fret] && intervalSpan) {
+            intervalSpan.textContent = intervals[string][fret]; // ★通常時に度数を適用
+        }
+
+        if (fretNotes[string]) {
+            const note = fretNotes[string][fret];
+            if (labelSpan) labelSpan.textContent = note; // ★音名を更新
+        }
+    });
+
+    if (chordName) {
+        activeFrets.forEach((fret, string) => {
+            if (fret !== null) {
+                const row = rows[string];
+                if (row) {
+                    const cells = row.querySelectorAll('td');
+                    if (cells[fret]) {
+                        cells[fret].classList.add('active'); // 選択されたフレットをハイライト
+                    }
+                }
+            }
+        });
+    }
+}
+
+
+
+function resetFrets() {
+    console.log("resetFrets called");
+    activeFrets = [null, null, null, null];
+
+    // ★ 全フレットの度数とラベルをクリア
+    document.querySelectorAll('.fret-Interval').forEach(span => {
+        span.textContent = ''; // ★度数を完全にリセット
+    });
+
+    document.querySelectorAll('.fret-label').forEach(span => {
+        span.textContent = ''; // ★ラベルもリセット
+    });
+
+    // ★ アクティブな状態を解除
+    document.querySelectorAll('td.fret').forEach(cell => {
+        cell.classList.remove('active');
+    });
+
+    // ★ `intervals` をデフォルトの C にリセット
+    intervals = initializeIntervals('C');
+
+    // ★ updateFretDisplay(null) を呼び出し、完全リセット
+    updateFretDisplay(null);
+}
+
+
+
+
+
+
+
+
+function playNote(string, fret) {
+    console.log(`playNote called: string=${string}, fret=${fret}`);
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    const frequency = baseFrequencies[string] * Math.pow(semitoneRatio, fret);
+    console.log(`Frequency calculated: ${frequency}`);
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+
+    gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 2);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 2);
+}
+
+function playChord() {
+    console.log("playChord called");
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    [3, 2, 1, 0].forEach((string, delay) => {
+        if (activeFrets[string] !== null) {
+            setTimeout(() => {
+                console.log(`Playing string ${string} with fret ${activeFrets[string]}`);
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                const frequency = baseFrequencies[string] * Math.pow(semitoneRatio, activeFrets[string]);
+                console.log(`Frequency for string ${string}: ${frequency}`);
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 2);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 2);
+
+                // ★ 鳴らしたフレットを一時的にハイライト
+                highlightFret(string, activeFrets[string]);
+
+            }, delay * 100); // 0.2秒ずつ時差をつける
+        }
+    });
+}
+
+
+function highlightFret(string, fret) {
+    const rows = document.querySelectorAll('tbody tr');
+    const row = rows[string];
+
+    if (row) {
+        const cells = row.querySelectorAll('td');
+        if (cells[fret]) {
+            cells[fret].classList.add('playing'); // ★ 一時的にグラデーション追加
+
+            // ★ 0.5秒後に元の色に戻す
+            setTimeout(() => {
+                cells[fret].classList.remove('playing');
+            }, 300);
+        }
+    }
+}
+
+
+    </script>
+</body>
+</html>
