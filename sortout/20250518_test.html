@@ -5,59 +5,17 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>整理収納アプリ</title>
+
+  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">  function registerItem() {
-    const name = document.getElementById('itemName').value.trim();
-    const tag = document.getElementById('itemTag').value.trim();
-    const imageElement = document.querySelector('#imagePreview img');
-    const image = imageElement ? imageElement.src : '';
-
-    if (!name || !tag || !image) {
-      alert('名称、タグ、写真をすべて入力してください');
-      return;
-    }
-
-    const newItem = {
-      id: Date.now().toString(),
-      name: name,
-      tag: tag,
-      image: image
-    };
-
-    let items = JSON.parse(localStorage.getItem('items')) || [];
-    items.push(newItem);
-    localStorage.setItem('items', JSON.stringify(items));
-
-    updateItemList();
-    document.getElementById('itemName').value = '';
-    document.getElementById('itemTag').value = '';
-    document.getElementById('imagePreview').innerHTML = '';
-    var modal = bootstrap.Modal.getInstance(document.getElementById('modal'));
-    modal.hide();
-  }
-
-  function updateItemList() {
-    const itemList = document.getElementById('itemList');
-    itemList.innerHTML = '';
-    const items = JSON.parse(localStorage.getItem('items')) || [];
-
-    items.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'item';
-      div.innerHTML = `<img src="${item.image}" width="100"><br>${item.name}<br>${item.tag}`;
-      itemList.appendChild(div);
-    });
-  }
-
-  // ページ初期表示時にリストを更新
-  document.addEventListener('DOMContentLoaded', updateItemList);
 
   <style>
     body { margin: 20px; }
     .container { max-width: 600px; margin: 0 auto; }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .item-list { display: flex; flex-wrap: wrap; gap: 10px; }
-    .item { width: 150px; height: 150px; background-color: #f0f0f0; display: flex; justify-content: center; align-items: center; font-size: 14px; }
+    .item { width: 150px; height: 150px; background-color: #f0f0f0; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 14px; cursor: pointer; }
+    .item img { max-width: 100%; max-height: 80px; object-fit: cover; }
   </style>
 </head>
 <body>
@@ -67,46 +25,64 @@
     <h1 class="h4">整理収納アプリ</h1>
     <button class="btn btn-primary" onclick="openModal()">追加する</button>
   </div>
-
-  <div class="item-list" id="itemList">
-    <!-- ダミーデータの表示 -->
-    <div class="item">トイレ用品</div>
-    <div class="item">キッチン用品</div>
-    <div class="item">文房具セット</div>
-  </div>
+  <div class="item-list" id="itemList"></div>
 </div>
 
-<!-- モーダルの基本構造（非表示状態） -->
-<div class="modal" id="modal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+<!-- 登録モーダル -->
+<div class="modal fade" id="modal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="modalLabel">登録モーダル</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        <button class="btn btn-secondary mb-2" onclick="openCamera()">写真を撮る</button>
-        <div id="imagePreview" class="mb-2"></div>
       </div>
       <div class="modal-body">
         <input type="text" class="form-control mb-2" placeholder="名称" id="itemName">
         <input type="text" class="form-control mb-2" placeholder="タグ" id="itemTag">
+        <button type="button" class="btn btn-secondary mb-2" onclick="openCamera('imagePreview')">写真を撮る</button>
+        <div id="imagePreview" class="mb-2"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
         <button type="button" class="btn btn-primary" onclick="registerItem()">登録</button>
       </div>
     </div>
   </div>
 </div>
 
-<script>
-  function openModal() {
-    var modal = new bootstrap.Modal(document.getElementById('modal'));
-    modal.show();
-  }
-</script>
+<!-- 編集モーダル -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editModalLabel">編集モーダル</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" class="form-control mb-2" id="editItemName" placeholder="名称">
+        <input type="text" class="form-control mb-2" id="editItemTag" placeholder="タグ">
+        <button type="button" class="btn btn-secondary mb-2" onclick="openCamera('editImagePreview')">写真を再撮影</button>
+        <div id="editImagePreview" class="mb-2"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" onclick="deleteItem()">削除</button>
+        <button type="button" class="btn btn-primary" onclick="updateItem()">更新</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  function openCamera() {
+  // モーダルを開く関数
+  function openModal() {
+    const modal = new bootstrap.Modal(document.getElementById('modal'));
+    modal.show();
+  }
+
+  // カメラ起動関数: targetIdにプレビュー表示要素のIDを渡す
+  function openCamera(targetId) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -114,20 +90,13 @@
     input.onchange = function(event) {
       const file = event.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
-      reader.readAsDataURL(file);
-
       reader.onload = function() {
         const img = new Image();
-        img.src = reader.result;
-        img.onload = function() {
+        img.onload = () => {
           const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
           const maxSize = 180;
-          let width = img.width;
-          let height = img.height;
-
+          let { width, height } = img;
           if (width > height) {
             height = (height / width) * maxSize;
             width = maxSize;
@@ -135,18 +104,97 @@
             width = (width / height) * maxSize;
             height = maxSize;
           }
-
           canvas.width = width;
           canvas.height = height;
-          ctx.drawImage(img, 0, 0, width, height);
-
-          const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
-          document.getElementById('imagePreview').innerHTML = `<img src="${resizedDataUrl}" class="img-thumbnail" width="150">`;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          document.getElementById(targetId).innerHTML = `<img src="${dataUrl}" class="img-thumbnail" width="150">`;
         };
+        img.src = reader.result;
       };
+      reader.readAsDataURL(file);
     };
     input.click();
   }
+
+  // 登録処理
+  function registerItem() {
+    const name = document.getElementById('itemName').value.trim();
+    const tag = document.getElementById('itemTag').value.trim();
+    const imgEl = document.querySelector('#imagePreview img');
+    const image = imgEl ? imgEl.src : '';
+    if (!name || !tag || !image) {
+      alert('名称、タグ、写真をすべて入力してください');
+      return;
+    }
+    const newItem = { id: Date.now().toString(), name, tag, image };
+    const items = JSON.parse(localStorage.getItem('items')) || [];
+    items.push(newItem);
+    localStorage.setItem('items', JSON.stringify(items));
+    updateItemList();
+    // フォームリセット
+    document.getElementById('itemName').value = '';
+    document.getElementById('itemTag').value = '';
+    document.getElementById('imagePreview').innerHTML = '';
+    bootstrap.Modal.getInstance(document.getElementById('modal')).hide();
+  }
+
+  // 一覧更新
+  function updateItemList() {
+    const list = document.getElementById('itemList');
+    list.innerHTML = '';
+    const items = JSON.parse(localStorage.getItem('items')) || [];
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `<img src="${item.image}" width="100"><br>${item.name}<br>${item.tag}`;
+      div.addEventListener('click', () => openEditModal(item.id));
+      list.appendChild(div);
+    });
+  }
+
+  // 編集モーダルを開く
+  function openEditModal(itemId) {
+    const items = JSON.parse(localStorage.getItem('items')) || [];
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+    document.getElementById('editItemName').value = item.name;
+    document.getElementById('editItemTag').value = item.tag;
+    document.getElementById('editImagePreview').innerHTML = `<img src="${item.image}" width="150" class="img-thumbnail">`;
+    document.getElementById('editModal').setAttribute('data-item-id', itemId);
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+  }
+
+  // 更新処理
+  function updateItem() {
+    const id = document.getElementById('editModal').getAttribute('data-item-id');
+    const name = document.getElementById('editItemName').value.trim();
+    const tag = document.getElementById('editItemTag').value.trim();
+    const imgEl = document.querySelector('#editImagePreview img');
+    const image = imgEl ? imgEl.src : '';
+    const items = JSON.parse(localStorage.getItem('items')) || [];
+    const idx = items.findIndex(i => i.id === id);
+    if (idx > -1) {
+      items[idx] = { id, name, tag, image };
+      localStorage.setItem('items', JSON.stringify(items));
+      updateItemList();
+    }
+    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+  }
+
+  // 削除処理
+  function deleteItem() {
+    const id = document.getElementById('editModal').getAttribute('data-item-id');
+    let items = JSON.parse(localStorage.getItem('items')) || [];
+    items = items.filter(i => i.id !== id);
+    localStorage.setItem('items', JSON.stringify(items));
+    updateItemList();
+    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+  }
+
+  // 初期表示
+  document.addEventListener('DOMContentLoaded', updateItemList);
 </script>
+
 </body>
 </html>
