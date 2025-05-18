@@ -1,1 +1,107 @@
-aaa
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>整理収納アプリ</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    body { margin: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .item-list { display: flex; flex-wrap: wrap; gap: 10px; }
+    .item { width: 150px; height: 150px; background-color: #f0f0f0; display: flex; justify-content: center; align-items: center; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1 class="h4">整理収納アプリ</h1>
+    <button class="btn btn-primary" onclick="openModal()">追加する</button>
+  </div>
+
+  <div class="item-list" id="itemList">
+    <!-- ダミーデータの表示 -->
+    <div class="item">トイレ用品</div>
+    <div class="item">キッチン用品</div>
+    <div class="item">文房具セット</div>
+  </div>
+</div>
+
+<!-- モーダルの基本構造（非表示状態） -->
+<div class="modal" id="modal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalLabel">登録モーダル</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button class="btn btn-secondary mb-2" onclick="openCamera()">写真を撮る</button>
+        <div id="imagePreview" class="mb-2"></div>
+      </div>
+      <div class="modal-body">
+        <input type="text" class="form-control mb-2" placeholder="名称" id="itemName">
+        <input type="text" class="form-control mb-2" placeholder="タグ" id="itemTag">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+        <button type="button" class="btn btn-primary">登録</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openModal() {
+    var modal = new bootstrap.Modal(document.getElementById('modal'));
+    modal.show();
+  }
+</script>
+
+<script>
+  function openCamera() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'camera';
+    input.onchange = function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+
+      reader.onload = function() {
+        const img = new Image();
+        img.src = reader.result;
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const maxSize = 180;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            height = (height / width) * maxSize;
+            width = maxSize;
+          } else {
+            width = (width / height) * maxSize;
+            height = maxSize;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          document.getElementById('imagePreview').innerHTML = `<img src="${resizedDataUrl}" class="img-thumbnail" width="150">`;
+        };
+      };
+    };
+    input.click();
+  }
+</script>
+</body>
+</html>
