@@ -12,12 +12,14 @@
   <style>
     body { margin: 20px; }
     .container { max-width: 600px; margin: 0 auto; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .header { display: flex; gap: 8px; align-items: center; margin-bottom: 20px; }
     .item-list { display: flex; flex-wrap: wrap; gap: 10px; }
-    .item { width: 150px; height: 180px; background-color: #f0f0f0; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 14px; cursor: pointer; padding: 5px; }
+    .item { width: 150px; height: 180px; background-color: #f0f0f0;
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; font-size: 14px; cursor: pointer; padding: 5px; }
     .item img { max-width: 100%; max-height: 80px; object-fit: cover; margin-bottom: 4px; }
     #tagList button { margin-right: 4px; margin-bottom: 4px; }
-    #filterHeader h5 { display: flex; align-items: center; }
+    #filterHeader h5 { display: flex; align-items: center; margin: 0; }
     #filterHeader .btn-close { margin-left: 8px; }
   </style>
 </head>
@@ -27,6 +29,8 @@
   <div class="header">
     <h1 class="h4">整理収納アプリ</h1>
     <button class="btn btn-primary" onclick="openModal()">追加する</button>
+    <button class="btn btn-outline-secondary" onclick="saveData()">保存</button>
+    <button class="btn btn-outline-secondary" onclick="importData()">読み込み</button>
   </div>
 
   <!-- フィルター状態 -->
@@ -48,7 +52,6 @@
       <div class="modal-body">
         <input type="text" class="form-control mb-2" placeholder="名称" id="itemName">
         <input type="text" class="form-control mb-2" placeholder="タグ" id="itemTag">
-        <!-- 使用頻度選択 -->
         <select class="form-select mb-2" id="itemFrequency">
           <option value="0">なし　★☆☆☆☆</option>
           <option value="1">年に数回　★★☆☆☆</option>
@@ -76,8 +79,7 @@
       </div>
       <div class="modal-body">
         <input type="text" class="form-control mb-2" id="editItemName" placeholder="名称">
-        <input type="text" class="form-control mb-2" id="editItemTag" placeholder="タグ">
-        <!-- 使用頻度選択 -->
+        <input type="text" class="form-control mb-3" id="editItemTag" placeholder="タグ">
         <select class="form-select mb-2" id="editItemFrequency">
           <option value="0">なし　★☆☆☆☆</option>
           <option value="1">年に数回　★★☆☆☆</option>
@@ -108,61 +110,42 @@
   //---------------------------------------
   // モーダル関連処理
   //---------------------------------------
-  // 登録モーダルを開く
   function openModal() {
     new bootstrap.Modal(document.getElementById('modal')).show();
   }
 
-  // 編集モーダルを開く
   function openEditModal(itemId) {
-    //---------------------------------------
-    // 選択アイテムのデータ取得
-    //---------------------------------------
     const items = JSON.parse(localStorage.getItem('items')) || [];
     const item = items.find(i => i.id === itemId);
     if (!item) return;
-
-    //---------------------------------------
-    // フォームへデータ反映
-    //---------------------------------------
     document.getElementById('editItemName').value = item.name;
     document.getElementById('editItemTag').value = item.tag;
     document.getElementById('editItemFrequency').value = item.frequency;
-    document.getElementById('editImagePreview').innerHTML = `<img src="${item.image}" width="150" class="img-thumbnail">`;
+    document.getElementById('editImagePreview').innerHTML = `<img src="${item.image}" class="img-thumbnail" width="150">`;
     document.getElementById('editModal').setAttribute('data-item-id', itemId);
-
-    //---------------------------------------
-    // モーダル表示
-    //---------------------------------------
     new bootstrap.Modal(document.getElementById('editModal')).show();
   }
 
   //---------------------------------------
   // カメラ・画像処理
   //---------------------------------------
-  // カメラ起動関数: targetIdにプレビュー要素のIDを渡す
   function openCamera(targetId) {
     const input = document.createElement('input');
     input.type = 'file'; input.accept = 'image/*'; input.capture = 'camera';
-    input.onchange = function(e) {
+    input.onchange = e => {
       const file = e.target.files[0]; if (!file) return;
       const reader = new FileReader();
-      reader.onload = function() {
-        const img = new Image(); img.onload = () => {
-          //---------------------------------------
-          // 画像リサイズ
-          //---------------------------------------
-          const canvas = document.createElement('canvas'); const maxSize = 180;
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxSize = 180;
           let { width, height } = img;
-          if (width > height) { height = (height / width) * maxSize; width = maxSize; }
-          else { width = (width / height) * maxSize; height = maxSize; }
+          if (width > height) { height = (height/width)*maxSize; width = maxSize; }
+          else { width = (width/height)*maxSize; height = maxSize; }
           canvas.width = width; canvas.height = height;
-          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-
-          //---------------------------------------
-          // プレビュー表示
-          //---------------------------------------
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          canvas.getContext('2d').drawImage(img,0,0,width,height);
+          const dataUrl = canvas.toDataURL('image/jpeg',0.6);
           document.getElementById(targetId).innerHTML = `<img src="${dataUrl}" class="img-thumbnail" width="150">`;
         };
         img.src = reader.result;
@@ -175,28 +158,17 @@
   //---------------------------------------
   // 登録・更新・削除機能
   //---------------------------------------
-  // アイテム登録処理
   function registerItem() {
     const name = document.getElementById('itemName').value.trim();
+    if (!name) { alert('名称は必須です'); return; }
     const tag = document.getElementById('itemTag').value.trim();
     const freq = document.getElementById('itemFrequency').value;
     const imgEl = document.querySelector('#imagePreview img');
     const image = imgEl ? imgEl.src : '';
-    // タイトル（名称）のみ必須
-    if (!name) {
-      alert('名称は必須です');
-      return;
-    }
-
-    const newItem = { id: Date.now().toString(), name, tag, image, frequency: freq };
     const items = JSON.parse(localStorage.getItem('items')) || [];
-    items.push(newItem);
+    items.push({ id: Date.now().toString(), name, tag, image, frequency: freq });
     localStorage.setItem('items', JSON.stringify(items));
     updateItemList();
-
-    //---------------------------------------
-    // フォームリセット・モーダル閉じる
-    //---------------------------------------
     document.getElementById('itemName').value = '';
     document.getElementById('itemTag').value = '';
     document.getElementById('itemFrequency').value = '0';
@@ -204,10 +176,10 @@
     bootstrap.Modal.getInstance(document.getElementById('modal')).hide();
   }
 
-  // アイテム更新処理
   function updateItem() {
     const id = document.getElementById('editModal').getAttribute('data-item-id');
     const name = document.getElementById('editItemName').value.trim();
+    if (!name) { alert('名称は必須です'); return; }
     const tag = document.getElementById('editItemTag').value.trim();
     const freq = document.getElementById('editItemFrequency').value;
     const imgEl = document.querySelector('#editImagePreview img');
@@ -222,7 +194,6 @@
     bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
   }
 
-  // アイテム削除処理
   function deleteItem() {
     const id = document.getElementById('editModal').getAttribute('data-item-id');
     let items = JSON.parse(localStorage.getItem('items')) || [];
@@ -235,12 +206,10 @@
   //---------------------------------------
   // フィルター機能
   //---------------------------------------
-  // タグ一覧レンダリング
   function renderTags() {
     const items = JSON.parse(localStorage.getItem('items')) || [];
     const tags = [...new Set(items.map(i => i.tag))];
-    const tagListEl = document.getElementById('tagList');
-    tagListEl.innerHTML = '';
+    const tagListEl = document.getElementById('tagList'); tagListEl.innerHTML = '';
     tags.forEach(tag => {
       const btn = document.createElement('button');
       btn.className = 'btn btn-outline-secondary btn-sm';
@@ -250,39 +219,54 @@
     });
   }
 
-  // フィルター状態ヘッダー更新
   function updateFilterHeader() {
     const headerEl = document.getElementById('filterHeader');
     if (currentFilterTag) {
-      headerEl.innerHTML = `<h5>${currentFilterTag}一覧<button class="btn-close ms-2" onclick="clearFilter()"></button></h5>`;
+      headerEl.innerHTML = `<h5>${currentFilterTag}一覧<button type="button" class="btn-close ms-2" onclick="clearFilter()"></button></h5>`;
     } else {
       headerEl.innerHTML = '';
     }
   }
 
-  // フィルター解除
-  function clearFilter() {
-    currentFilterTag = null;
-    updateItemList();
+  function clearFilter() { currentFilterTag = null; updateItemList(); }
+
+  //---------------------------------------
+  // データ保存・読み込み機能
+  //---------------------------------------
+  function saveData() {
+    const data = localStorage.getItem('items');
+    if (!data) { alert('保存するデータがありません'); return; }
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'storage.json'; a.click(); URL.revokeObjectURL(url);
+  }
+
+  function importData() {
+    const input = document.createElement('input'); input.type = 'file'; input.accept = 'application/json';
+    input.onchange = e => {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try { localStorage.setItem('items', reader.result); updateItemList(); alert('データを読み込みました'); } 
+        catch (err) { alert('読み込みエラー'); }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   }
 
   //---------------------------------------
   // 一覧表示更新処理
   //---------------------------------------
   function updateItemList() {
-    renderTags();
-    updateFilterHeader();
-    const list = document.getElementById('itemList');
-    list.innerHTML = '';
+    renderTags(); updateFilterHeader();
+    const list = document.getElementById('itemList'); list.innerHTML = '';
     let items = JSON.parse(localStorage.getItem('items')) || [];
     if (currentFilterTag) items = items.filter(i => i.tag === currentFilterTag);
     items.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'item';
-      const label = starLabels[item.frequency] || '';
+      const div = document.createElement('div'); div.className = 'item'; const label = starLabels[item.frequency] || '';
       div.innerHTML = `<img src="${item.image}" width="100"><br>${item.name}<br>${item.tag}<br>${label}`;
-      div.addEventListener('click', () => openEditModal(item.id));
-      list.appendChild(div);
+      div.addEventListener('click', () => openEditModal(item.id)); list.appendChild(div);
     });
   }
 
