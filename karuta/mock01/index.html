@@ -1,116 +1,327 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>本音カルタ Web版 試作v1</title>
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      background-image: url('img/bg.webp');
-      background-size: cover;
-      background-position: center;
-    }
-    #karuta-card {
-      width: 400px;
-      height: 600px;
-      object-fit: contain;
-      transform-origin: center;
-    }
-    @keyframes bounceIn {
-      0% { transform: scale(0); }
-      60% { transform: scale(1.2); }
-      80% { transform: scale(0.9); }
-      100% { transform: scale(1); }
-    }
-    .bounce { animation: bounceIn 1.2s; }
-    .main_ttl {
-      color: #fff;
-      font-size: 32px;
-      padding: 0.5em;
-    }
-    #manual-image {
-      width: 600px;
-      height: auto;
-    }
-  </style>
-</head>
-<body>
-  <div class="d-flex flex-column justify-content-center align-items-center min-vh-100">
-    <h1 class="main_ttl">本音カルタ</h1>
-    <button id="startBtn" class="btn btn-primary mb-3">ゲームスタート</button>
-    <div id="gameArea" class="text-center d-none">
-      <img id="karuta-card" src="" alt="カルタカード" class="mb-3">
-      <div>
-        <button id="nextCardBtn" class="btn btn-primary">次のカード</button>
-        <button id="manualBtn" class="btn btn-secondary ms-2" data-bs-toggle="modal" data-bs-target="#manualModal">マニュアルを読む</button>
-      </div>
-      <p id="remaining" class="mt-2 text-white"></p>
-    </div>
-  </div>
-
-  <!-- Manual Modal -->
-  <div class="modal fade" id="manualModal" tabindex="-1" aria-labelledby="manualModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="manualModalLabel">本音カルタ マニュアル</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
-        </div>
-        <div class="modal-body text-center">
-          <img id="manual-image" src="img/manual.webp" alt="マニュアル画像">
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bootstrap JS Bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    const karutaImages = [
-      'img/karuta01.webp',
-      'img/karuta02.webp',
-      'img/karuta03.webp',
-      'img/karuta04.webp',
-      'img/karuta05.webp',
-      'img/karuta06.webp',
-      'img/karuta07.webp',
-      'img/karuta08.webp'
-    ];
-    let shuffled = [];
-    function shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>本音カルタ Web版 試作v1</title>
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
       }
-      return array;
-    }
-    document.getElementById('startBtn').addEventListener('click', () => {
-      shuffled = shuffle([...karutaImages]);
-      document.getElementById('gameArea').classList.remove('d-none');
-      document.getElementById('startBtn').classList.add('d-none');
-      showNext();
-    });
-    document.getElementById('nextCardBtn').addEventListener('click', showNext);
-    function showNext() {
-      const imgEl = document.getElementById('karuta-card');
-      if (shuffled.length === 0) {
-        imgEl.src = 'img/end.webp';
+      body {
+        background-image: url('img/bg.webp');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        position: relative;
+      }
+      /* Black overlay */
+      body::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.3);
+        z-index: 1;
+      }
+      .container {
+        position: relative;
+        z-index: 2;
+      }
+      #karuta-card {
+        width: 90vw;
+        max-width: 400px;
+        height: auto;
+        max-height: 60vh;
+        object-fit: contain;
+        transform-origin: center;
+      }
+      @keyframes bounceIn {
+        0% {
+          transform: scale(0);
+        }
+        60% {
+          transform: scale(1.2);
+        }
+        80% {
+          transform: scale(0.9);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      .bounce {
+        animation: bounceIn 1.2s;
+      }
+      .main_ttl {
+        color: #ccc;
+        font-size: 6vw;
+        max-font-size: 24px;
+        padding: 0.5em;
+      }
+      #manual-image {
+        width: 90vw;
+        max-width: 600px;
+        height: auto;
+      }
+      .manual_link {
+        font-size: 14px;
+        font-weight: normal;
+        color: #ccc;
+        margin-left: 1em;
+      }
+      .entry_ttl {
+        color: #fff;
+        font-size: 8vw;
+        max-font-size: 42px;
+        text-align: center;
+        padding: 3em 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container py-4">
+      <!-- Participant Registration -->
+      <div id="playerForm" class="mb-4">
+        <p class="entry_ttl">
+          本音かるたへ<br />ようこそ
+        </p>
+        <h4 class="text-white">参加者登録（2～4名）</h4>
+        <div class="row g-2">
+          <!-- Generate 4 participant rows -->
+          <div
+            class="col-12 col-md-6"
+            id="playerRowTemplate"
+            style="display: none;"
+          >
+            <div class="input-group">
+              <span class="input-group-text">名前</span>
+              <input
+                type="text"
+                class="form-control player-name"
+                maxlength="10"
+                placeholder="ニックネーム"
+              />
+              <select class="form-select player-type">
+                <option value="s">就活生</option>
+                <option value="k">企業</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button id="startBtn" class="btn btn-primary mb-3">
+        ゲームスタート
+      </button>
+
+      <!-- Game Area -->
+      <div id="gameArea" class="text-center d-none">
+        <h2 id="questionTarget" class="text-white mb-3"></h2>
+        <img
+          id="karuta-card"
+          src=""
+          alt="カルタカード"
+          class="mb-3"
+        />
+        <div class="d-flex flex-wrap justify-content-center">
+          <button id="nextCardBtn" class="btn btn-primary mb-2">
+            次のカード
+          </button>
+        </div>
+        <p id="remaining" class="mt-2 text-white"></p>
+      </div>
+
+      <h1 class="main_ttl text-center">
+        本音カルタ
+        <span
+          id="manualBtn"
+          class="manual_link"
+          data-bs-toggle="modal"
+          data-bs-target="#manualModal"
+          >beta1.0 ＞マニュアルを読む</span
+        >
+      </h1>
+    </div>
+
+    <!-- Manual Modal -->
+    <div
+      class="modal fade"
+      id="manualModal"
+      tabindex="-1"
+      aria-labelledby="manualModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5
+              class="modal-title"
+              id="manualModalLabel"
+            >
+              本音カルタ マニュアル
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="閉じる"
+            ></button>
+          </div>
+          <div class="modal-body text-center">
+            <img
+              id="manual-image"
+              src="img/manual.webp"
+              alt="マニュアル画像"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+    ></script>
+    <script>
+      // Card data with type: 's' = student, 'k' = company
+      const karutaList = [
+        { src: 'img/karuta01.webp', type: 's' },
+        { src: 'img/karuta02.webp', type: 'k' },
+        { src: 'img/karuta03.webp', type: 's' },
+        { src: 'img/karuta04.webp', type: 'k' },
+        { src: 'img/karuta05.webp', type: 's' },
+        { src: 'img/karuta06.webp', type: 'k' },
+        { src: 'img/karuta07.webp', type: 's' },
+        { src: 'img/karuta08.webp', type: 'k' },
+        // ...他カードも同様に{src, type}で追加
+      ];
+      let shuffledCards = [];
+      let participants = [];
+      const order = { s: [], k: [] };
+      const pointer = { s: 0, k: 0 };
+
+      // Shuffle utility
+      function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      }
+
+      // Init player form
+      window.onload = () => {
+        const container =
+          document.querySelector('#playerForm .row');
+        for (let i = 0; i < 4; i++) {
+          const row =
+            document
+              .getElementById('playerRowTemplate')
+              .cloneNode(true);
+          row.id = '';
+          row.style.display = 'block';
+          container.appendChild(row);
+        }
+      };
+
+      document
+        .getElementById('startBtn')
+        .addEventListener('click', () => {
+          // Gather participants
+          participants = [];
+          document
+            .querySelectorAll('#playerForm .row > div')
+            .forEach((row) => {
+              const name =
+                row
+                  .querySelector('.player-name')
+                  .value.trim();
+              const type =
+                row.querySelector('.player-type').value;
+              if (name) participants.push({ name, type });
+            });
+          if (participants.length < 2) {
+            alert('参加者は2名以上必要です');
+            return;
+          }
+          // Prepare per-type orders
+          ['s', 'k'].forEach((t) => {
+            order[t] =
+              shuffle(
+                participants.filter((p) => p.type === t)
+              );
+            pointer[t] = 0;
+          });
+          // Shuffle cards
+          shuffledCards = shuffle([...karutaList]);
+
+          // Hide form and show game area
+          document
+            .getElementById('playerForm')
+            .classList.add('d-none');
+          document
+            .getElementById('startBtn')
+            .classList.add('d-none');
+          document
+            .getElementById('gameArea')
+            .classList.remove('d-none');
+          showNext();
+        });
+
+      document
+        .getElementById('nextCardBtn')
+        .addEventListener('click', showNext);
+
+      function showNext() {
+        const imgEl =
+          document.getElementById('karuta-card');
+        const label =
+          document.getElementById('questionTarget');
+        if (shuffledCards.length === 0) {
+          imgEl.src = 'img/end.webp';
+          label.textContent = 'ゲーム終了！';
+          imgEl.classList.add('bounce');
+          document
+            .getElementById('nextCardBtn')
+            .disabled = true;
+          return;
+        }
+        // Next card
+        const card = shuffledCards.shift();
+        imgEl.src = card.src;
         imgEl.classList.remove('bounce');
         void imgEl.offsetWidth;
         imgEl.classList.add('bounce');
-        document.getElementById('remaining').textContent = 'ゲーム終了！';
-        document.getElementById('nextCardBtn').disabled = true;
-        return;
+        document.getElementById(
+          'remaining'
+        ).textContent =
+          `残り: ${shuffledCards.length} 枚`;
+
+        // Select participant
+        const arr = order[card.type];
+        if (arr.length > 0) {
+          const idx = pointer[card.type] % arr.length;
+          label.textContent =
+            `${card.type === 's' ? '就活生' : '企業'}の${
+              arr[idx].name
+            }さんに聞きます`;
+          pointer[card.type]++;
+          // Re-shuffle cycle if completed a round
+          if (pointer[card.type] % arr.length === 0)
+            order[card.type] = shuffle(arr);
+        } else {
+          label.textContent = '';
+        }
       }
-      const next = shuffled.shift();
-      imgEl.src = next;
-      imgEl.classList.remove('bounce');
-      void imgEl.offsetWidth;
-      imgEl.classList.add('bounce');
-      document.getElementById('remaining').textContent = `残り: ${shuffled.length} 枚`;
-    }
-  </script>
-</body>
+    </script>
+  </body>
 </html>
