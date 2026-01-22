@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>vtt字幕君（動画ポイント指定）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Bootstrap -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body { background:#f8f9fa; }
+.card:hover { border-color:#0d6efd; cursor:pointer; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.video-box { background:#000; }
+</style>
+</4 mb-1">vtt字幕君</h1>
+    <p class="text-muted mb-0">動画を再生しながら字幕ポイントを指定して WebVTT を作成</p>
+  </div>
+</header>
+
+<main class="container my-4">
+
+<!-- 動画読み込み -->
+<section class="mb-4">
+  <div class="mb-2">
+    <input type="file" class="form-control" id="videoInput" accept="video/mp4">
+  </div>
+
+  <div class="video-box mb-2">
+    <video id="video" class="w-100" controls></video>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button id="startBtn" class="btn btn-primary">開始位置に設定</button>
+    <button id="endBtn" class="btn btn-secondary" disabled>終了位置に設定</button>
+    <div class="ms-auto text-muted align-self-center mono">
+      現在: <span id="currentTime">--:--.-</span>
+    </div>
+  </div>
+</section>
+
+<!-- 字幕カード -->
+<section>
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="h5 mb-0">字幕カード</h2>
+    <button class="btn btn-success btn-sm" id="generateBtn">VTT生成</button>
+  </div>
+
+  <div class="row g-3" id="cards"></div>
+  <p id="empty" class="text-muted text-center mt-4">字幕はまだありません</p>
+</section>
+
+</main>
+
+<!-- 編集モーダル -->
+<div class="modal fade" id="editModal" tabindex="-1">
+<div class="modal-dialog">
+<div class="modal-content">
+<form id="editForm">
+
+<div class="modal-header">
+  <h5 class="modal-title">字幕編集</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="modal-body">
+  <div class="row mb-3">
+    <div class="col">
+      <label class="form-label">開始（分:秒）</label>
+      <input id="sTime" class="form-control mono" readonly>
+    </div>
+    <div class="col">
+      <label class="form-label">終了（分:秒）</label>
+      <input id="eTime" class="form-control mono" readonly>
+    </div>
+  </div>
+
+  <label class="form-label">字幕テキスト</label>
+  <textarea id="text" class="form-control" rows="3"></textarea>
+</div>
+
+<div class="modal-footer justify-content-between">
+  <button type="button" class="btn btn-outline-danger" id="deleteBtn">削除</button>
+  <div>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+    <button class="btn btn-primary">保存</button>
+  </div>
+</div>
+
+<input type="hidden" id="editIndex">
+
+</form>
+</div>
+</div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+const video = document.getElementById("video");
+const videoInput = document.getElementById("videoInput");
+const startBtn = document.getElementById("startBtn");
+const endBtn = document.getElementById("endBtn");
+const currentTimeEl = document.getElementById("currentTime");
+
+let startTemp = null;
+let cues = [];
+
+function round01(sec){ return Math.floor(sec * 10) / 10; }
+function fmt(sec){
+  const m = Math.floor(sec / 60);
+  const s = (sec % 60).toFixed(1).padStart(4,"0");
+  return `${String(m).padStart(2,"0")}:${s}`;
+}
+function vttTime(sec){
+  const t = round01(sec);
+  const h = Math.floor(t/3600);
+  const m = Math.floor((t%3600)/60);
+  const s = (t%60).toFixed(3).padStart(6,"0");
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${s}`;
+}
+
+video.addEventListener("timeupdate",()=>{
+  currentTimeEl.textContent = fmt(video.currentTime);
+});
+
+videoInput.addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(file){
+    video.src = URL.createObjectURL(file);
+  }
+});
+
+startBtn.onclick = ()=>{
+  startTemp = round01(video.currentTime);
+  startBtn.disabled = true;
+  endBtn.disabled = false;
+};
+
+endBtn.onclick = ()=>{
+  const end = round01(video.currentTime);
+  if(startTemp === null) return;
+
+  const cue = { start:startTemp, end:end, text:"" };
+  cues.push(cue);
+  render();
+
+  openModal(cues.length-1);
+
+  startTemp = null;
+  startBtn.disabled = false;
+  endBtn.disabled = true;
+};
+
+const cards = document.getElementById("cards");
+const empty = document.getElementById("empty");
+
+function render(){
+  cards.innerHTML="";
+  empty.style.display = cues.length ? "none" : "block";
+
+  cues.forEach((c,i)=>{
+    const col = document.createElement("div");
+    col.className="col-md-4";
+
+    col.innerHTML = `
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="mono">[${fmt(c.start)} - ${fmt(c.end)}]</h6>
+          <p class="mb-0">${c.text || "<em>（未入力）</em>"}</p>
+        </div>
+      </div>`;
+    col.onclick=()=>openModal(i);
+    cards.appendChild(col);
+  });
+}
+
+// モーダル
+const modal = new bootstrap.Modal("#editModal");
+const sTime = document.getElementById("sTime");
+const eTime = document.getElementById("eTime");
+const text = document.getElementById("text");
+const editIndex = document.getElementById("editIndex");
+
+function openModal(i){
+  const c = cues[i];
+  sTime.value = fmt(c.start);
+  eTime.value = fmt(c.end);
+  text.value = c.text;
+  editIndex.value = i;
+  modal.show();
+}
+
+document.getElementById("editForm").onsubmit=e=>{
+  e.preventDefault();
+  cues[editIndex.value].text = text.value;
+  modal.hide();
+  render();
+};
+
+document.getElementById("deleteBtn").onclick=()=>{
+  if(confirm("削除しますか？")){
+    cues.splice(editIndex.value,1);
+    modal.hide();
+    render();
+  }
+};
+
+// VTT生成
+document.getElementById("generateBtn").onclick=()=>{
+  if(!cues.length) return alert("字幕がありません");
+  let out="WEBVTT\n\n";
+  cues.forEach((c,i)=>{
+    out+=`${i+1}\n${vttTime(c.start)} --> ${vttTime(c.end)}\n${c.text}\n\n`;
+  });
+  const blob=new Blob([out],{type:"text/vtt;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="subtitles.vtt";
+  a.click();
+};
+</script>
+
+</body>
+</html>
